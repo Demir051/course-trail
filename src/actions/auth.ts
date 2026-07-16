@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { getT } from "@/i18n/server-t";
 import { toUserError } from "@/lib/errors";
-import { safeInternalPath } from "@/lib/safe-redirect";
+import { getRequestOrigin, safeInternalPath } from "@/lib/safe-redirect";
 import { createClient } from "@/lib/supabase/server";
 import {
   loginSchema,
@@ -35,7 +35,7 @@ export async function signUpAction(
   }
 
   const supabase = await createClient();
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const origin = await getRequestOrigin();
 
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
@@ -104,7 +104,7 @@ export async function requestPasswordResetAction(
   }
 
   const supabase = await createClient();
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const origin = await getRequestOrigin();
   const next = encodeURIComponent("/settings/profile?reset=1");
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${origin}/auth/callback?next=${next}`,
@@ -148,13 +148,14 @@ export async function signInWithGoogleAction() {
   }
 
   const supabase = await createClient();
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const origin = await getRequestOrigin();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: `${origin}/auth/callback`,
     },
   });
+
   if (error) {
     redirect("/login?error=google_unavailable");
   }
